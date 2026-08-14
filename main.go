@@ -13,6 +13,7 @@ const (
 func main() {
 	// TODO implement "flags" dependency to set command line flags for usage
 	// https://gobyexample.com/command-line-flags
+	// blah
 
 	glossaryText, err := fetchRawHtml(TABLE_OF_CONTENTS_URL)
 	if err != nil {
