@@ -24,11 +24,21 @@ func main() {
 		os.Exit(1)
 	}
 
-	glossaryText, err := fetchRawHtml(*url)
+	pageRawHtml, err := fetchRawHtml(*url)
 	if err != nil {
-		fmt.Fprintln(os.Stderr, "failed to fetch glossary:", err)
+		fmt.Fprintln(os.Stderr, "failed to fetch page:", err)
 		os.Exit(1)
 	}
 
-	fmt.Println(glossaryText)
+	// TODO add validation to confirm this is a root page
+
+	chapterRecords, err := extractChapterURLs(pageRawHtml)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "failed to extract chapter URLs:", err)
+		os.Exit(1)
+	}
+
+	for _, chapterRecord := range chapterRecords {
+		fmt.Printf("%s: %s\n", chapterRecord.title, chapterRecord.url)
+	}
 }
