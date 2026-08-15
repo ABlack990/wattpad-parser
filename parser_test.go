@@ -45,3 +45,31 @@ func TestExtractChapterURLs_DuplicityHome(t *testing.T) {
 		t.Errorf("expected 102 chapter URLs, got %d", len(chapterRecords))
 	}
 }
+
+func TestExtractChapterTextHtml_Duplicity00(t *testing.T) {
+	rawHtml, err := os.ReadFile("test_files/duplicity-00.html")
+	if err != nil {
+		t.Fatalf("failed to read test file: %v", err)
+	}
+
+	chapterHtml, err := extractChapterTextHtml(string(rawHtml))
+	if err != nil {
+		t.Fatalf("extractChapterTextHtml returned an unexpected error: %v", err)
+	}
+
+	if chapterHtml == "" {
+		t.Fatal("expected non-empty chapter HTML")
+	}
+
+	if !strings.Contains(chapterHtml, "<p") {
+		t.Errorf("expected chapter HTML to contain <p> tags, got: %s", chapterHtml)
+	}
+
+	if !strings.Contains(chapterHtml, "I was exuding out of total fear") {
+		t.Errorf("expected chapter HTML to contain known chapter text, got: %s", chapterHtml)
+	}
+
+	if strings.Contains(chapterHtml, "trinityAudioPlaceholder") {
+		t.Errorf("expected trinityAudioPlaceholder div to be removed, got: %s", chapterHtml)
+	}
+}

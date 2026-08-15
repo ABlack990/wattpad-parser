@@ -71,3 +71,25 @@ func extractChapterURLs(rootPageRawHtml string) ([]chapterRecord, error) {
 	}
 	return urls, nil
 }
+
+func extractChapterTextHtml(chapterPageRawHtml string) (string, error) {
+	doc, err := goquery.NewDocumentFromReader(strings.NewReader(chapterPageRawHtml))
+	if err != nil {
+		return "", err
+	}
+
+	pre := doc.Find(".panel-reading pre").First()
+	if pre.Length() == 0 {
+		return "", fmt.Errorf("could not find chapter text container")
+	}
+
+	// strip the injected audio placeholder, not part of the actual chapter content
+	pre.Find(".trinityAudioPlaceholder").Remove()
+
+	html, err := pre.Html()
+	if err != nil {
+		return "", err
+	}
+
+	return strings.TrimSpace(html), nil
+}

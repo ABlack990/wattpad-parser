@@ -7,6 +7,10 @@ import (
 	"time"
 )
 
+type HttpConfig struct {
+	Timeout time.Duration
+}
+
 var httpConfig = HttpConfig{Timeout: 10 * time.Second}
 
 func fetchRawHtml(fetchUrl string) (string, error) {

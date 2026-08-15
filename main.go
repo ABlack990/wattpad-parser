@@ -39,6 +39,21 @@ func main() {
 	}
 
 	for _, chapterRecord := range chapterRecords {
-		fmt.Printf("%s: %s\n", chapterRecord.title, chapterRecord.url)
+		title := chapterRecord.title
+		chapterURL := chapterRecord.url
+		pageRawHtml, err := fetchRawHtml(chapterURL)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "failed to fetch chapter page for %q (%s): %v\n", title, chapterURL, err)
+			continue
+		}
+
+		chapterRawHtml, err := extractChapterTextHtml(pageRawHtml)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "failed to extract chapter text for %q (%s): %v\n", title, chapterURL, err)
+			continue
+		}
+
+		fmt.Printf("%s\n\n", chapterRawHtml)
+		break
 	}
 }
