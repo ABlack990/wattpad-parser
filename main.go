@@ -7,34 +7,52 @@ import (
 )
 
 func main() {
+	config := RunConfig{
+		url:       "",
+		outputDir: "./wattpad-output",
+		format:    FormatMarkdown,
+	}
+
 	flag.Usage = func() {
-		fmt.Fprintln(os.Stderr, "wattpad-parser: fetches and parses a Wattpad story page.")
+		fmt.Fprintln(os.Stderr, "wattpad-parser: Fetches, parses and outputs a Wattpad story as Markdown text.")
 		fmt.Fprintln(os.Stderr)
 		fmt.Fprintln(os.Stderr, "Usage:")
-		fmt.Fprintf(os.Stderr, "  %s -url <story-url>\n\n", os.Args[0])
+		fmt.Fprintf(os.Stderr, "  %s -url <story-url> -output-dir <output-directory> -output-format <format>\n\n", os.Args[0])
 		fmt.Fprintln(os.Stderr, "Flags:")
 		flag.PrintDefaults()
 	}
 
-	url := flag.String("url", "", "wattpad story base page URL (e.g https://www.wattpad.com/story/138202651-duplicity-h-s) (required)")
+	flag.StringVar(&config.url, "url", config.url, "wattpad story base page URL (e.g https://www.wattpad.com/story/138202651-duplicity-h-s) (required)")
+	flag.StringVar(&config.outputDir, "output-dir", config.outputDir, "directory to save the output files)")
+	flag.Var(&config.format, "output-format", "Output format(markdown, html, text)")
 	flag.Parse()
 
-	if *url == "" {
+	if config.url == "" {
 		fmt.Fprintln(os.Stderr, "error: -url flag is required")
 		os.Exit(1)
 	}
 
-	pageRawHtml, err := fetchRawHtml(*url)
+	pageRawHtml, err := fetchRawHtml(config.url)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "failed to fetch page:", err)
 		os.Exit(1)
 	}
 
-	// TODO add validation to confirm this is a root page
-
-	chapterRecords, err := extractChapterURLs(pageRawHtml)
+	storyMetadata, chapterRecords, err := parseStory(pageRawHtml)
 	if err != nil {
-		fmt.Fprintln(os.Stderr, "failed to extract chapter URLs:", err)
+		fmt.Fprintln(os.Stderr, "failed to parse story:", err)
+		os.Exit(1)
+	}
+
+	err = os.MkdirAll(config.outputDir, 0775)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "failed to create root output directory:", err)
+		os.Exit(1)
+	}
+
+	err = writeMetadataJsonFile(storyMetadata, config.outputDir)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "failed to write metadata.json: %v\n", err)
 		os.Exit(1)
 	}
 
@@ -53,7 +71,10 @@ func main() {
 			continue
 		}
 
-		fmt.Printf("%s\n\n", chapterRawHtml)
-		break
+		err = writeChapter(chapterRawHtml, chapterRecord, config.outputDir, config.format)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "failed to write chapter %q: %v\n", title, err)
+			continue
+		}
 	}
 }

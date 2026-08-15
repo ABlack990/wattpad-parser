@@ -28,6 +28,98 @@ type chapterRecord struct {
 	url   string
 }
 
+type storyPerson struct {
+	Name string `json:"name"`
+	URL  string `json:"url"`
+}
+
+type storyPublisherLogo struct {
+	Type string `json:"@type"`
+	URL  string `json:"url"`
+}
+
+type storyPublisher struct {
+	Type             string             `json:"@type"`
+	Name             string             `json:"name"`
+	LegalName        string             `json:"legalName"`
+	FoundingDate     string             `json:"foundingDate"`
+	FoundingLocation string             `json:"foundingLocation"`
+	AreaServed       string             `json:"areaServed"`
+	Logo             storyPublisherLogo `json:"logo"`
+	URL              string             `json:"url"`
+}
+
+type storyMainEntityOfPage struct {
+	Type string `json:"@type"`
+	ID   string `json:"@id"`
+}
+
+// storyMetadata mirrors the schema.org Article JSON-LD block embedded in a story's root page.
+type storyMetadata struct {
+	Context              string                `json:"@context"`
+	Type                 string                `json:"@type"`
+	About                string                `json:"about"`
+	Author               storyPerson           `json:"author"`
+	AccountablePerson    storyPerson           `json:"accountablePerson"`
+	CopyrightHolder      storyPerson           `json:"copyrightHolder"`
+	CopyrightYear        string                `json:"copyrightYear"`
+	DateCreated          string                `json:"dateCreated"`
+	DatePublished        string                `json:"datePublished"`
+	DateModified         string                `json:"dateModified"`
+	Description          string                `json:"description"`
+	CommentCount         int64                 `json:"commentCount"`
+	DiscussionURL        string                `json:"discussionUrl"`
+	Genre                string                `json:"genre"`
+	Headline             string                `json:"headline"`
+	InLanguage           string                `json:"inLanguage"`
+	InteractionStatistic int64                 `json:"interactionStatistic"`
+	IsAccessibleForFree  bool                  `json:"isAccessibleForFree"`
+	IsFamilyFriendly     bool                  `json:"isFamilyFriendly"`
+	Keywords             string                `json:"keywords"`
+	Publisher            storyPublisher        `json:"publisher"`
+	PublishingPrinciples string                `json:"publishingPrinciples"`
+	ThumbnailURL         string                `json:"thumbnailUrl"`
+	TypicalAgeRange      string                `json:"typicalAgeRange"`
+	Image                string                `json:"image"`
+	Name                 string                `json:"name"`
+	URL                  string                `json:"url"`
+	MainEntityOfPage     storyMainEntityOfPage `json:"mainEntityOfPage"`
+}
+
+func parseStory(rootPageRawHtml string) (storyMetadata, []chapterRecord, error) {
+	metadata, err := extractStoryMetadata(rootPageRawHtml)
+	if err != nil {
+		return metadata, nil, fmt.Errorf("failed to extract story metadata: %v", err)
+	}
+
+	chapterRecords, err := extractChapterURLs(rootPageRawHtml)
+	if err != nil {
+		return metadata, nil, fmt.Errorf("failed to extract chapter URLs: %v", err)
+	}
+
+	return metadata, chapterRecords, nil
+}
+
+func extractStoryMetadata(rootPageRawHtml string) (storyMetadata, error) {
+	var metadata storyMetadata
+
+	doc, err := goquery.NewDocumentFromReader(strings.NewReader(rootPageRawHtml))
+	if err != nil {
+		return metadata, err
+	}
+
+	jsonStr := doc.Find(`script[type="application/ld+json"]`).First().Text()
+	if jsonStr == "" {
+		return metadata, fmt.Errorf("could not find application/ld+json script")
+	}
+
+	if err := json.Unmarshal([]byte(jsonStr), &metadata); err != nil {
+		return metadata, err
+	}
+
+	return metadata, nil
+}
+
 func extractChapterURLs(rootPageRawHtml string) ([]chapterRecord, error) {
 	doc, err := goquery.NewDocumentFromReader(strings.NewReader(rootPageRawHtml))
 	if err != nil {
